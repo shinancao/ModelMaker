@@ -2,7 +2,7 @@
 //  Helpers.swift
 //  ModelMakerKit
 //
-//  Created by 张楠[产品技术中心] on 2018/3/29.
+//  Created by 张楠 on 2018/3/29.
 //
 
 import Foundation
