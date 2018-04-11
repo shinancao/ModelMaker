@@ -10,7 +10,7 @@ import Foundation
 public enum ModelMakerError: Error {
     case readFileFailed
     case jsonFormatWrong
-    case createFileFailed
+    case writeFileFailed
 }
 
 public enum ModelType: String {

@@ -73,9 +73,24 @@ let modelType = modelTypeOption.value ?? .swift
 
 print("Generating \(modelType.description) models... ⚙".bold)
 
-let modelMaker = ModelMaker()
-modelMaker.createModels(from: jsonPath, to: directory, modelType: modelType).forEach { (file) in
-    print("\(file) is generated".green.bold)
+do {
+    try ModelMaker.createModels(from: jsonPath, to: directory, modelType: modelType).forEach({ (filePath) in
+        print("\(filePath) is generated".green.bold)
+    })
+} catch {
+    guard let e = error as? ModelMakerError else {
+        print("Unknown Error: \(error)".red.bold)
+        exit(EX_USAGE)
+    }
+    
+    switch e {
+    case .readFileFailed:
+        print("Can't find json file at path: \(jsonPath)".red.bold)
+    case .jsonFormatWrong:
+        print("Oops, json format is wrong!".red.bold)
+    case .writeFileFailed:
+        print("Can't write file to the directory: \(directory)".red.bold)
+    }
 }
 
 

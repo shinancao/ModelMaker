@@ -187,18 +187,19 @@ class ModelFile: NSObject {
         
         modelSwiftTotalFileString = modelSwiftTotalFileString.replacingOccurrences(of: "[Swift-Stored-Property]", with: propertiesString)
         
+        //写入到文件中
         let swiftFilePath = directory + "/\(fileName).swift"
         let path = Path(swiftFilePath)
-        //写入到文件中
         do {
             try path.write(modelSwiftTotalFileString)
-            return swiftFilePath
         } catch {
-            throw ModelMakerError.createFileFailed
+            throw ModelMakerError.writeFileFailed
         }
+        
+        return swiftFilePath
     }
     
-    func createObjectiveCFile() throws -> String {
+    func createObjectiveCFile() throws -> [String] {
         let fileName = ObjCBasePropertyType.getClassType(with: node.type)
         
         //替换文件名
@@ -258,17 +259,18 @@ class ModelFile: NSObject {
         modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Stored-Property]", with: propertiesString)
         
         //写入到文件中
+        let objcHeaderFilePath = directory + "/\(fileName).h"
+        let headerPath = Path(objcHeaderFilePath)
+        let objcMFilePath = directory + "/\(fileName).m"
+        let mPath = Path(objcMFilePath)
         do {
-            let objcHeaderFilePath = directory + "/\(fileName).h"
-            var path = Path(objcHeaderFilePath)
-            try path.write(modelObjCHeaderFileString)
-            let objcMFilePath = directory + "/\(fileName).m"
-            path = Path(objcMFilePath)
-            try path.write(modelObjCMFileString)
-            return objcHeaderFilePath
+            try headerPath.write(modelObjCHeaderFileString)
+            try mPath.write(modelObjCMFileString)
         } catch {
-            throw ModelMakerError.createFileFailed
+            throw ModelMakerError.writeFileFailed
         }
+        
+        return [objcHeaderFilePath, objcMFilePath]
     }
 }
 
@@ -278,7 +280,7 @@ public struct ModelMaker {
     
     public init(){}
     
-    func readJsonFile(_ filePath: String) throws -> [String: Any] {
+    public static func readJsonFile(_ filePath: String) throws -> [String: Any] {
         let p = Path(filePath)
         
         guard let data = try? p.read() else {
@@ -294,7 +296,7 @@ public struct ModelMaker {
         return dict
     }
     
-    func openFile(_ filePath: String) {
+    public static func openFile(_ filePath: String) {
         let process = Process()
         process.launchPath = "/usr/bin/env"
         process.arguments = ["open", filePath]
@@ -302,34 +304,28 @@ public struct ModelMaker {
     }
     
     //要返回生成的文件路径和错误
-    public func createModels(from jsonFile: String, to directory: String, modelType: ModelType) -> [String] {
+    public static func createModels(from jsonFile: String, to directory: String, modelType: ModelType) throws -> [String] {
+        
         var createdFiles = [String]()
-        do {
-            let json = try readJsonFile(jsonFile)
-            
-            let tree = Tree.createTree(withDict: json, rootNodeName: "Root", type: modelType)
-            
-            for node in tree.allSubNodes {
-                do {
-                    let modelFile = ModelFile(node: node, directory: directory)
-                    switch(modelType) {
-                    case .objc:
-                        let filePath = try modelFile.createObjectiveCFile()
-                        createdFiles.append(filePath)
-                    case .swift:
-                        let swiftPath = try modelFile.createSwiftFile()
-                        createdFiles.append(swiftPath)
-                    }
-                    
-                } catch {
-                    print("create file failed")
-                }
+        
+        let json = try readJsonFile(jsonFile)
+        
+        let tree = Tree.createTree(withDict: json, rootNodeName: "Root", type: modelType)
+        
+        for node in tree.allSubNodes {
+            let modelFile = ModelFile(node: node, directory: directory)
+            switch(modelType) {
+            case .objc:
+                let filePath = try modelFile.createObjectiveCFile()
+                createdFiles.append(contentsOf: filePath)
+            case .swift:
+                let swiftPath = try modelFile.createSwiftFile()
+                createdFiles.append(swiftPath)
             }
-            
-            openFile(directory)
-        } catch {
-            print("read json file failed")
         }
+        
+        openFile(directory)
+        
         return createdFiles
     }
 }
