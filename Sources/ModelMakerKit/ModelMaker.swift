@@ -8,23 +8,28 @@
 import Foundation
 import PathKit
 
-struct Node {
-    var name: String   //属性的名字
-    var type: String   //属性的类型
-    var childs: [Node] //该node下的所有子节点，亦即所有属性
-    var level: Int     //该node所在的层
+// MARK: Json Tree
+class Node: NSObject {
+    var name: String = ""
+    var type: String = ""
+    var childs: [Node] = []
+    var level: Int = 0
     
-    init(name: String) {
+    func createChildNodes(withDict data: [String: Any]) {}
+}
+
+extension Node {
+    convenience init(name: String) {
+        self.init()
         self.name = name
-        self.type = ""
-        self.childs = []
-        self.level = 0
     }
-    
-    mutating func createChildNodes(withDict data: [String: Any]) {
-    
+}
+
+class SwiftNode: Node {
+    override func createChildNodes(withDict data: [String: Any]) {
+        
         for key in data.keys {
-            var node = Node(name: key)
+            let node = SwiftNode(name: key)
             node.level = self.level + 1
             
             let value = data[key]
@@ -65,11 +70,52 @@ struct Node {
     }
 }
 
+class ObjCNode: Node {
+    override func createChildNodes(withDict data: [String: Any]) {
+        
+        for key in data.keys {
+            let node = ObjCNode(name: key)
+            node.level = self.level + 1
+            
+            let value = data[key]
+            if value is String {
+                node.type = ObjCBasePropertyType.kNSString.rawValue
+            } else if value is Int || value is Float || value is Bool {
+                node.type = ObjCBasePropertyType.kNSNumber.rawValue
+            } else if value is [String] {
+                node.type = ObjCBasePropertyType.kNSStringArray.rawValue
+            } else if value is [Int] || value is [Float] || value is [Bool] {
+                node.type = ObjCBasePropertyType.kNSNumberArray.rawValue
+            } else if value is [String: Any] {
+                node.type = ObjCBasePropertyType.customPropertyType(with: key)
+                node.createChildNodes(withDict: value as! [String: Any])
+            } else if value is [[String: Any]] {
+                node.type = ObjCBasePropertyType.customArrayPropertyType(with: key)
+                if let customModelArray = value as? [[String: Any]], customModelArray.count > 0{
+                    node.createChildNodes(withDict: customModelArray[0])
+                }
+            } else {
+                node.type = ObjCBasePropertyType.kUnknownType.rawValue
+            }
+            
+            self.childs.append(node)
+        }
+        
+    }
+}
+
 struct Tree {
     let rootNode: Node
     //(跟在数据结构书里看到的有什么不同呢，给到的json本身就是树装结构了，所以在构造时不需要找怎么插入孩子节点)
-    static func createTree(withDict data: [String: Any], rootNodeName: String) -> Tree {
-        var node = Node(name: rootNodeName)
+    static func createTree(withDict data: [String: Any], rootNodeName: String, type: ModelType) -> Tree {
+        var node: Node
+        switch type {
+        case .objc:
+            node = ObjCNode(name: rootNodeName)
+        case .swift:
+            node = SwiftNode(name: rootNodeName)
+        }
+        
         node.level = 0
         node.type = modelNameHelper.generateName(with: rootNodeName)
         node.createChildNodes(withDict: data)
@@ -101,20 +147,33 @@ struct Tree {
     }
 }
 
+// MARK: Create File
+
 //负责创建单独的文件
 class ModelFile: NSObject {
     let node: Node
     
     var modelSwiftTotalFileString: String
+    var modelObjCHeaderFileString: String
+    var modelObjCMFileString: String
     
-    init(node: Node) {
+    var fileName: String
+    
+    let directory: String
+    
+    init(node: Node, directory: String) {
         self.node = node
         self.modelSwiftTotalFileString = modelFileFormatDict["SwiftTotalFile"]!
+        self.modelObjCHeaderFileString = modelFileFormatDict["modelHeaderFileString"]!
+        self.modelObjCMFileString = modelFileFormatDict["modelMFileString"]!
+        self.directory = directory
+        self.fileName = ""
     }
     
-    func createSwiftFile(to directory: String) throws -> String {
+    func createSwiftFile() throws -> String {
+        self.fileName = node.type.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: "")
+        
         //替换文件名
-        let fileName = node.type.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: "")
         modelSwiftTotalFileString = modelSwiftTotalFileString.replacingOccurrences(of: "[Swift-Model-Name]", with: fileName)
         
         //替换项目相关信息
@@ -141,7 +200,82 @@ class ModelFile: NSObject {
             throw ModelMakerError.createFileFailed
         }
     }
+    
+    func createObjectiveCFile() throws -> String {
+        self.fileName = ObjCBasePropertyType.getClassType(with: node.type)
+        
+        //替换文件名
+        modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Model-Name]", with: fileName)
+        
+        modelObjCMFileString = modelObjCMFileString.replacingOccurrences(of: "[ObjC-Model-Name]", with: fileName)
+        
+        //替换项目相关信息
+        modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Author]", with: projectInfo.author)
+        modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Date]", with: projectInfo.dateString)
+        modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Year]", with: projectInfo.yearString)
+        
+        modelObjCMFileString = modelObjCMFileString.replacingOccurrences(of: "[ObjC-Author]", with: projectInfo.author)
+        modelObjCMFileString = modelObjCMFileString.replacingOccurrences(of: "[ObjC-Date]", with: projectInfo.dateString)
+        modelObjCMFileString = modelObjCMFileString.replacingOccurrences(of: "[ObjC-Year]", with: projectInfo.yearString)
+        
+        //用@class声明自定义类
+        var declareClassString = ""
+        var importClassString = ""
+        node.childs.forEach { (node) in
+            let baseProperty = ObjCBasePropertyType(rawValue: node.type)
+            if baseProperty == nil {
+                let classType = ObjCBasePropertyType.getClassType(with: node.type)
+                var tmpString = ""
+                if declareClassString == "" {
+                    tmpString = "@class \(classType)"
+                } else {
+                    tmpString = ", \(classType)"
+                }
+                declareClassString = declareClassString.appending(tmpString)
+                importClassString = importClassString.appending("#import \"\(classType).h\"\n")
+            }
+        }
+        if declareClassString != "" {
+            declareClassString = declareClassString.appending(";\n")
+        }
+        if importClassString != "" {
+            importClassString = importClassString.appending("\r")
+        }
+        
+        modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Declare-Class]", with: declareClassString)
+        modelObjCMFileString = modelObjCMFileString.replacingOccurrences(of: "[Objc-Import-Class]", with: importClassString)
+        
+        //替换属性
+        var propertiesString = ""
+        node.childs.forEach { (node) in
+            var tmpString = ""
+            if node.type == ObjCBasePropertyType.kNSString.rawValue {
+                tmpString = "@property (nonatomic, copy) \(node.type)\(node.name);\n"
+            } else {
+                tmpString = "@property (nonatomic, strong) \(node.type)\(node.name);\n"
+            }
+            
+            propertiesString = propertiesString.appending(tmpString)
+        }
+        
+        modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Stored-Property]", with: propertiesString)
+        
+        //写入到文件中
+        do {
+            let objcHeaderFilePath = directory + "/\(fileName).h"
+            var path = Path(objcHeaderFilePath)
+            try path.write(modelObjCHeaderFileString)
+            let objcMFilePath = directory + "/\(fileName).m"
+            path = Path(objcMFilePath)
+            try path.write(modelObjCMFileString)
+            return objcHeaderFilePath
+        } catch {
+            throw ModelMakerError.createFileFailed
+        }
+    }
 }
+
+// MARK: ModelMaker
 
 public struct ModelMaker {
     
@@ -175,13 +309,21 @@ public struct ModelMaker {
         var createdFiles = [String]()
         do {
             let json = try readJsonFile(jsonFile)
-            let tree = Tree.createTree(withDict: json, rootNodeName: "Test")
+            
+            let tree = Tree.createTree(withDict: json, rootNodeName: "Root", type: modelType)
+            
             for node in tree.allSubNodes {
                 do {
-                    let modelFile = ModelFile(node: node)
-                    //后面考虑到Objective-C的要改
-                    let filePath = try modelFile.createSwiftFile(to: directory)
-                    createdFiles.append(filePath)
+                    let modelFile = ModelFile(node: node, directory: directory)
+                    switch(modelType) {
+                    case .objc:
+                        let filePath = try modelFile.createObjectiveCFile()
+                        createdFiles.append(filePath)
+                    case .swift:
+                        let swiftPath = try modelFile.createSwiftFile()
+                        createdFiles.append(swiftPath)
+                    }
+                    
                 } catch {
                     print("create file failed")
                 }

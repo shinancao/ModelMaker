@@ -16,16 +16,35 @@ public enum ModelMakerError: Error {
 public enum ModelType: String {
     case objc  = "o"
     case swift = "s"
-    case both  = "b"
     
-    public func description() -> String {
+    public var description: String {
         switch self {
         case .objc:
             return "Objective-C"
         case .swift:
             return "Swift"
-        case .both:
-            return "Both Objective-C and Swift"
         }
+    }
+}
+
+public enum ObjCBasePropertyType: String {
+    case kNSString = "NSString *"
+    case kNSNumber = "NSNumber *"
+    case kNSStringArray = "NSArray<NSString *> *"
+    case kNSNumberArray = "NSArray<NSNumber *> *"
+    case kUnknownType = "\"unknown type\""
+}
+
+public extension ObjCBasePropertyType {
+    public static func customPropertyType(with string: String) -> String {
+        return modelNameHelper.generateName(with: string) + " *"
+    }
+    
+    public static func customArrayPropertyType(with string: String) -> String {
+        return "NSArray<\(modelNameHelper.generateName(with: string)) *> *"
+    }
+    
+    public static func getClassType(with propertyType: String) -> String {
+        return propertyType.replacingOccurrences(of: "NSArray<", with: "").replacingOccurrences(of: " *>", with: "").replacingOccurrences(of: " *", with: "")
     }
 }

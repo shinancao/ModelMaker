@@ -29,7 +29,7 @@ cli.addOption(directoryOption)
 let helpOption = BoolOption(shortFlag: "h", longFlag: "help", helpMessage: "Print this help message.")
 cli.addOption(helpOption)
 
-let modelTypeOption = EnumOption<ModelType>(shortFlag: "t", longFlag: "model-type", helpMessage: "model type operation - o for Objective-C, s for Swift, b for both Objective-C and Swift. Default is both of them.")
+let modelTypeOption = EnumOption<ModelType>(shortFlag: "t", longFlag: "model-type", helpMessage: "model type operation - o for Objective-C, s for Swift. Default is Swift.")
 cli.addOption(modelTypeOption)
 
 let prefixOption = StringOption(shortFlag: "p", longFlag: "prefix", helpMessage: "Set prefix for generated models. Default is nothing.")
@@ -69,9 +69,9 @@ if suffixOption.value != nil {
 let jsonPath = jsonPathOption.value ?? "."
 let directory = directoryOption.value ?? "."
 
-let modelType = modelTypeOption.value ?? .both
+let modelType = modelTypeOption.value ?? .swift
 
-print("Generating \(modelType.description()) models... ⚙".bold)
+print("Generating \(modelType.description) models... ⚙".bold)
 
 let modelMaker = ModelMaker()
 modelMaker.createModels(from: jsonPath, to: directory, modelType: modelType).forEach { (file) in
