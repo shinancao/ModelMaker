@@ -27,6 +27,28 @@ public enum ModelType: String {
     }
 }
 
+public enum SwiftBasePropertyType: String {
+    case kString = "String"
+    case kInt = "Int"
+    case kFloat = "Float"
+    case kBool = "Bool"
+    case kStringArray = "[String]"
+    case kIntArray = "[Int]"
+    case kFloatArray = "[Float]"
+    case kBoolArray = "[Bool]"
+    case kUnknownType = "\"unknown type\""
+}
+
+public extension SwiftBasePropertyType {
+    public static func customArrayPropertyType(with string: String) -> String {
+        return "[\(modelNameHelper.generateName(with: string))]"
+    }
+    
+    public static func getClassType(with propertyType: String) -> String {
+        return propertyType.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: "")
+    }
+}
+
 public enum ObjCBasePropertyType: String {
     case kNSString = "NSString *"
     case kNSNumber = "NSNumber *"

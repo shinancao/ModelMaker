@@ -34,35 +34,35 @@ class SwiftNode: Node {
             
             let value = data[key]
             if value is String {
-                node.type = "String"
+                node.type = SwiftBasePropertyType.kString.rawValue
             } else if value is Int {
-                node.type = "Int"
+                node.type = SwiftBasePropertyType.kInt.rawValue
             } else if value is Float {
-                node.type = "Float"
+                node.type = SwiftBasePropertyType.kFloat.rawValue
             } else if value is Bool {
-                node.type = "Bool"
+                node.type = SwiftBasePropertyType.kBool.rawValue
             } else if value is [String: Any] {
                 node.type = modelNameHelper.generateName(with: key)
                 node.createChildNodes(withDict: value as! [String: Any])
             } else if value is [String] {
                 if let array = value as? [String], array.count > 0 {
-                    node.type = "[String]"
+                    node.type = SwiftBasePropertyType.kStringArray.rawValue
                 } else {
-                    node.type = "[]"
+                    node.type = SwiftBasePropertyType.kUnknownType.rawValue
                 }
             } else if value is [Int] {
-                node.type = "[Int]"
+                node.type = SwiftBasePropertyType.kIntArray.rawValue
             } else if value is [Float] {
-                node.type = "[Float]"
+                node.type = SwiftBasePropertyType.kFloatArray.rawValue
             } else if value is [Bool] {
-                node.type = "[Bool]"
+                node.type = SwiftBasePropertyType.kBool.rawValue
             } else if value is [[String: Any]] {
-                node.type = "[\(modelNameHelper.generateName(with: key))]"
+                node.type = SwiftBasePropertyType.customArrayPropertyType(with: key)
                 if let customModelArray = value as? [[String: Any]], customModelArray.count > 0{
                     node.createChildNodes(withDict: customModelArray[0])
                 }
             } else {
-                node.type = "\"unknown type\""
+                node.type = SwiftBasePropertyType.kUnknownType.rawValue
             }
             
             self.childs.append(node)
@@ -157,8 +157,6 @@ class ModelFile: NSObject {
     var modelObjCHeaderFileString: String
     var modelObjCMFileString: String
     
-    var fileName: String
-    
     let directory: String
     
     init(node: Node, directory: String) {
@@ -167,11 +165,10 @@ class ModelFile: NSObject {
         self.modelObjCHeaderFileString = modelFileFormatDict["modelHeaderFileString"]!
         self.modelObjCMFileString = modelFileFormatDict["modelMFileString"]!
         self.directory = directory
-        self.fileName = ""
     }
     
     func createSwiftFile() throws -> String {
-        self.fileName = node.type.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: "")
+        let fileName = SwiftBasePropertyType.getClassType(with: node.type)
         
         //替换文件名
         modelSwiftTotalFileString = modelSwiftTotalFileString.replacingOccurrences(of: "[Swift-Model-Name]", with: fileName)
@@ -202,7 +199,7 @@ class ModelFile: NSObject {
     }
     
     func createObjectiveCFile() throws -> String {
-        self.fileName = ObjCBasePropertyType.getClassType(with: node.type)
+        let fileName = ObjCBasePropertyType.getClassType(with: node.type)
         
         //替换文件名
         modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Model-Name]", with: fileName)
