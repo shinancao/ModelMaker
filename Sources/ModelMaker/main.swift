@@ -26,6 +26,7 @@ let helpOption = BoolOption(shortFlag: "h", longFlag: "help", helpMessage: "Prin
 cli.addOption(helpOption)
 
 let versionOption = BoolOption(shortFlag: "v", longFlag: "version", helpMessage: "Print version.")
+cli.addOption(versionOption)
 
 let jsonPathOption = StringOption(longFlag: "json", helpMessage: "Path of json file.")
 cli.addOption(jsonPathOption)
