@@ -27,10 +27,10 @@ cli.addOption(helpOption)
 
 let versionOption = BoolOption(shortFlag: "v", longFlag: "version", helpMessage: "Print version.")
 
-let jsonPathOption = StringOption(longFlag: "json", required: true, helpMessage: "Path of json file.")
+let jsonPathOption = StringOption(longFlag: "json", helpMessage: "Path of json file.")
 cli.addOption(jsonPathOption)
 
-let directoryOption = StringOption(shortFlag: "d", longFlag: "dir", required: true, helpMessage: "Directory to the output model files.")
+let directoryOption = StringOption(shortFlag: "d", longFlag: "dir", helpMessage: "Directory to the output model files.")
 cli.addOption(directoryOption)
 
 let modelTypeOption = EnumOption<ModelType>(shortFlag: "t", longFlag: "model-type", helpMessage: "model type operation - o for Objective-C, s for Swift. Default is Swift.")
