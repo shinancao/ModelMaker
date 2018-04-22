@@ -36,7 +36,6 @@ public enum SwiftBasePropertyType: String {
     case kIntArray = "[Int]"
     case kFloatArray = "[Float]"
     case kBoolArray = "[Bool]"
-    case kUnknownType = "\"unknown type\""
 }
 
 public extension SwiftBasePropertyType {
@@ -54,7 +53,6 @@ public enum ObjCBasePropertyType: String {
     case kNSNumber = "NSNumber *"
     case kNSStringArray = "NSArray<NSString *> *"
     case kNSNumberArray = "NSArray<NSNumber *> *"
-    case kUnknownType = "\"unknown type\""
 }
 
 public extension ObjCBasePropertyType {
@@ -68,5 +66,31 @@ public extension ObjCBasePropertyType {
     
     public static func getClassType(with propertyType: String) -> String {
         return propertyType.replacingOccurrences(of: "NSArray<", with: "").replacingOccurrences(of: " *>", with: "").replacingOccurrences(of: " *", with: "")
+    }
+}
+
+public enum ObjCJSONModelPropertyType: String {
+    case kNSString = "NSString<Optional> *"
+    case kNSNumber = "NSNumber<Optional> *"
+    case kNSStringArray = "NSArray<NSString *><Optional> *"
+    case kNSNumberArray = "NSArray<NSNumber *><Optional> *"
+}
+
+public extension ObjCJSONModelPropertyType {
+    public static func customPropertyType(with string: String) -> String {
+        return modelNameHelper.generateName(with: string) + "<Optional> *"
+    }
+    
+    public static func customArrayPropertyType(with string: String) -> String {
+        return "NSArray<\(modelNameHelper.generateName(with: string)) *><\(modelNameHelper.generateName(with: string)), Optional> *"
+    }
+    
+    public static func getClassType(with propertyType: String) -> String {
+        let startIndex = propertyType.index("NSArray<".endIndex, offsetBy: 0)
+        if let endIndex = propertyType.range(of: " *>")?.lowerBound {
+            return propertyType[startIndex..<endIndex]
+        } else {
+            return propertyType
+        }
     }
 }

@@ -3,6 +3,8 @@ import CommandLineKit
 import Rainbow
 import ModelMakerKit
 
+let appVersion = "0.1.0"
+
 #if os(Linux)
 let EX_OK: Int32 = 0
 let EX_USAGE: Int32 = 64
@@ -20,14 +22,16 @@ cli.formatOutput = {s, type in
     return cli.defaultFormat(s: str, type: type)
 }
 
+let helpOption = BoolOption(shortFlag: "h", longFlag: "help", helpMessage: "Print this help message.")
+cli.addOption(helpOption)
+
+let versionOption = BoolOption(shortFlag: "v", longFlag: "version", helpMessage: "Print version.")
+
 let jsonPathOption = StringOption(longFlag: "json", required: true, helpMessage: "Path of json file.")
 cli.addOption(jsonPathOption)
 
 let directoryOption = StringOption(shortFlag: "d", longFlag: "dir", required: true, helpMessage: "Directory to the output model files.")
 cli.addOption(directoryOption)
-
-let helpOption = BoolOption(shortFlag: "h", longFlag: "help", helpMessage: "Print this help message.")
-cli.addOption(helpOption)
 
 let modelTypeOption = EnumOption<ModelType>(shortFlag: "t", longFlag: "model-type", helpMessage: "model type operation - o for Objective-C, s for Swift. Default is Swift.")
 cli.addOption(modelTypeOption)
@@ -58,6 +62,11 @@ if helpOption.value {
     exit(EX_OK)
 }
 
+if versionOption.value {
+    print(appVersion)
+    exit(EX_OK)
+}
+
 if prefixOption.value != nil {
     modelNameHelper.prefix = prefixOption.value!
 }
@@ -70,6 +79,10 @@ let jsonPath = jsonPathOption.value ?? "."
 let directory = directoryOption.value ?? "."
 
 let modelType = modelTypeOption.value ?? .swift
+
+if modelType == .objc {
+    modelPropertyHelper.inheritFromJSONModel = inheritFromJSONModel()
+}
 
 print("Generating \(modelType.description) models... ⚙".bold)
 

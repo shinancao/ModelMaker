@@ -48,7 +48,7 @@ class SwiftNode: Node {
                 if let array = value as? [String], array.count > 0 {
                     node.type = SwiftBasePropertyType.kStringArray.rawValue
                 } else {
-                    node.type = SwiftBasePropertyType.kUnknownType.rawValue
+                    node.type = modelPropertyHelper.unknowType
                 }
             } else if value is [Int] {
                 node.type = SwiftBasePropertyType.kIntArray.rawValue
@@ -62,7 +62,7 @@ class SwiftNode: Node {
                     node.createChildNodes(withDict: customModelArray[0])
                 }
             } else {
-                node.type = SwiftBasePropertyType.kUnknownType.rawValue
+                node.type = modelPropertyHelper.unknowType
             }
             
             self.childs.append(node)
@@ -79,23 +79,23 @@ class ObjCNode: Node {
             
             let value = data[key]
             if value is String {
-                node.type = ObjCBasePropertyType.kNSString.rawValue
+                node.type = modelPropertyHelper.objcString
             } else if value is Int || value is Float || value is Bool {
-                node.type = ObjCBasePropertyType.kNSNumber.rawValue
+                node.type = modelPropertyHelper.objcNumber
             } else if value is [String] {
-                node.type = ObjCBasePropertyType.kNSStringArray.rawValue
+                node.type = modelPropertyHelper.objcStringArray
             } else if value is [Int] || value is [Float] || value is [Bool] {
-                node.type = ObjCBasePropertyType.kNSNumberArray.rawValue
+                node.type = modelPropertyHelper.objcNumberArray
             } else if value is [String: Any] {
-                node.type = ObjCBasePropertyType.customPropertyType(with: key)
+                node.type = modelPropertyHelper.objcCustomType(with: key)
                 node.createChildNodes(withDict: value as! [String: Any])
             } else if value is [[String: Any]] {
-                node.type = ObjCBasePropertyType.customArrayPropertyType(with: key)
+                node.type = modelPropertyHelper.objcCustomArrayType(with: key)
                 if let customModelArray = value as? [[String: Any]], customModelArray.count > 0{
                     node.createChildNodes(withDict: customModelArray[0])
                 }
             } else {
-                node.type = ObjCBasePropertyType.kUnknownType.rawValue
+                node.type = modelPropertyHelper.unknowType
             }
             
             self.childs.append(node)
@@ -106,7 +106,7 @@ class ObjCNode: Node {
 
 struct Tree {
     let rootNode: Node
-    //(跟在数据结构书里看到的有什么不同呢，给到的json本身就是树装结构了，所以在构造时不需要找怎么插入孩子节点)
+    //(跟在数据结构书里看到的有什么不同呢，给到的json本身就是树状结构了，所以在构造时不需要找怎么插入孩子节点)
     static func createTree(withDict data: [String: Any], rootNodeName: String, type: ModelType) -> Tree {
         var node: Node
         switch type {
@@ -200,7 +200,7 @@ class ModelFile: NSObject {
     }
     
     func createObjectiveCFile() throws -> [String] {
-        let fileName = ObjCBasePropertyType.getClassType(with: node.type)
+        let fileName = modelPropertyHelper.getObjcClassType(with: node.type)
         
         //替换文件名
         modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Model-Name]", with: fileName)
@@ -220,9 +220,8 @@ class ModelFile: NSObject {
         var declareClassString = ""
         var importClassString = ""
         node.childs.forEach { (node) in
-            let baseProperty = ObjCBasePropertyType(rawValue: node.type)
-            if baseProperty == nil {
-                let classType = ObjCBasePropertyType.getClassType(with: node.type)
+            if !modelPropertyHelper.isObjcBaseType(propertyType: node.type) {
+                let classType = modelPropertyHelper.getObjcClassType(with: node.type)
                 var tmpString = ""
                 if declareClassString == "" {
                     tmpString = "@class \(classType)"
@@ -247,7 +246,7 @@ class ModelFile: NSObject {
         var propertiesString = ""
         node.childs.forEach { (node) in
             var tmpString = ""
-            if node.type == ObjCBasePropertyType.kNSString.rawValue {
+            if node.type == modelPropertyHelper.objcString {
                 tmpString = "@property (nonatomic, copy) \(node.type)\(node.name);\n"
             } else {
                 tmpString = "@property (nonatomic, strong) \(node.type)\(node.name);\n"

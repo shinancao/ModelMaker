@@ -50,7 +50,7 @@ class ModelMakerKitTests: XCTestCase {
     }
     
     func testCreateTree() {
-        let tree = Tree.createTree(withDict: testData, rootNodeName: "test")
+        let tree = Tree.createTree(withDict: testData, rootNodeName: "Root", type: .objc)
         print("\\\\\\\\\\")
         tree.rootNode.childs.forEach() {
             print($0.name + ":" + $0.type)
@@ -59,7 +59,7 @@ class ModelMakerKitTests: XCTestCase {
     }
     
     func testGetAllSubNodes() {
-        let tree = Tree.createTree(withDict: testData, rootNodeName: "test")
+        let tree = Tree.createTree(withDict: testData, rootNodeName: "Root", type: .objc)
         print("\\\\\\\\\\")
         tree.allSubNodes.forEach() {
             print($0.name + ":" + $0.type)
@@ -72,10 +72,18 @@ class ModelMakerKitTests: XCTestCase {
     
     func testCreateSwiftFile() {
         print("\\\\\\\\\\")
-        let modelMaker = ModelMaker()
-        modelMaker.createModels(from: "/Users/zn/Desktop/test.json", to: "/Users/zn/Desktop/TestModelMaker", modelType: .swift).forEach { (file) in
+        try? ModelMaker.createModels(from: "/Users/zn/Desktop/test.json", to: "/Users/zn/Desktop/TestModelMaker", modelType: .swift).forEach { (file) in
             print(file)
         }
+        print("\\\\\\\\\\")
+    }
+    
+    func testGetClassType() {
+        print("\\\\\\\\\\")
+        let testString = "NSArray<ProductsModel *><ProductsModel, Optional> *"
+        print(testString)
+        let string = ObjCJSONModelPropertyType.getClassType(with: testString)
+        print(string)
         print("\\\\\\\\\\")
     }
 }
