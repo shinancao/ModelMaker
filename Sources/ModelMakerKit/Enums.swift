@@ -86,11 +86,13 @@ public extension ObjCJSONModelPropertyType {
     }
     
     public static func getClassType(with propertyType: String) -> String {
-        let startIndex = propertyType.index("NSArray<".endIndex, offsetBy: 0)
         if let endIndex = propertyType.range(of: " *>")?.lowerBound {
+            let startIndex = propertyType.index("NSArray<".endIndex, offsetBy: 0)
             return propertyType[startIndex..<endIndex]
         } else {
-            return propertyType
+            return propertyType.replacingOccurrences(of: "<Optional> *", with: "")
         }
     }
+    
+    
 }

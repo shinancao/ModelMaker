@@ -162,8 +162,8 @@ class ModelFile: NSObject {
     init(node: Node, directory: String) {
         self.node = node
         self.modelSwiftTotalFileString = modelFileFormatDict["SwiftTotalFile"]!
-        self.modelObjCHeaderFileString = modelFileFormatDict["modelHeaderFileString"]!
-        self.modelObjCMFileString = modelFileFormatDict["modelMFileString"]!
+        self.modelObjCHeaderFileString = modelFileFormatDict["ModelHeaderFileString"]!
+        self.modelObjCMFileString = modelFileFormatDict["ModelMFileString"]!
         self.directory = directory
     }
     
@@ -204,8 +204,14 @@ class ModelFile: NSObject {
         
         //替换文件名
         modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Model-Name]", with: fileName)
-        
         modelObjCMFileString = modelObjCMFileString.replacingOccurrences(of: "[ObjC-Model-Name]", with: fileName)
+        
+        //替换其继承的类
+        var inheritClassName = "NSObject"
+        if modelPropertyHelper.inheritFromJSONModel {
+            inheritClassName = "JSONModel"
+        }
+        modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Inherit-Name]", with: inheritClassName)
         
         //替换项目相关信息
         modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Author]", with: projectInfo.author)
@@ -215,6 +221,10 @@ class ModelFile: NSObject {
         modelObjCMFileString = modelObjCMFileString.replacingOccurrences(of: "[ObjC-Author]", with: projectInfo.author)
         modelObjCMFileString = modelObjCMFileString.replacingOccurrences(of: "[ObjC-Date]", with: projectInfo.dateString)
         modelObjCMFileString = modelObjCMFileString.replacingOccurrences(of: "[ObjC-Year]", with: projectInfo.yearString)
+        
+        //如果继承自JSONModel，数组中有自定义类，则加上protocol声明
+        let protocolDeclareString = getObjCProtocol()
+        modelObjCHeaderFileString = modelObjCHeaderFileString.replacingOccurrences(of: "[ObjC-Protocol]", with: protocolDeclareString)
         
         //用@class声明自定义类
         var declareClassString = ""
@@ -270,6 +280,21 @@ class ModelFile: NSObject {
         }
         
         return [objcHeaderFilePath, objcMFilePath]
+    }
+    
+    func getObjCProtocol() -> String {
+        var protocolString = ""
+        if modelPropertyHelper.inheritFromJSONModel {
+            let protocolDeclareString = modelFileFormatDict["ProtocolDeclareString"]!
+            node.childs.forEach({ (node) in
+                if modelPropertyHelper.isCustomArray(propertyType: node.type) {
+                    let customProperty = modelPropertyHelper.getObjcClassType(with: node.type)
+                    protocolString.append(protocolDeclareString.replacingOccurrences(of: "[Protocol-Name]", with: customProperty))
+                }
+            })
+        }
+        
+        return protocolString
     }
 }
 

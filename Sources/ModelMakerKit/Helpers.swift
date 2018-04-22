@@ -90,9 +90,17 @@ public class ModelPropertyHelper {
     
     func isObjcBaseType(propertyType: String) -> Bool {
         if inheritFromJSONModel {
-            return ObjCJSONModelPropertyType(rawValue: propertyType) != nil
+            return ObjCJSONModelPropertyType(rawValue: propertyType) != nil || propertyType == unknowType
         } else {
-            return ObjCBasePropertyType(rawValue: propertyType) != nil
+            return ObjCBasePropertyType(rawValue: propertyType) != nil || propertyType == unknowType
+        }
+    }
+    
+    func isCustomArray(propertyType: String) -> Bool {
+        if !isObjcBaseType(propertyType: propertyType) {
+            return propertyType.contains("NSArray")
+        } else {
+            return false
         }
     }
 }
