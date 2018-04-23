@@ -1,11 +1,9 @@
 # ModelMaker
 
-<p align="center">
 <a href="https://travis-ci.org/shinancao/ModelMaker"><img src="https://img.shields.io/travis/shinancao/ModelMaker/master.svg"></a>
 <a href="https://swift.org/package-manager/"><img src="https://img.shields.io/badge/swift-4.0-brightgreen.svg"/></a>
 <a href="https://swift.org/package-manager/"><img src="https://img.shields.io/badge/SPM-ready-orange.svg"></a>
 <a href="https://swift.org/package-manager/"><img src="https://img.shields.io/badge/platform-macos%20|%20Linux-blue.svg"/></a>
-</p>
 
 This is a command-line util to generate Swift and Objective-C models from json files.
 
@@ -60,7 +58,7 @@ ModelMaker supports some arguments, you could find it by:
       Set suffix for generated models. Default is "Model".
 ```
 
-## How Tt Works
+## How It Works
 
 
 
