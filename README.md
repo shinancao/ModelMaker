@@ -60,7 +60,14 @@ ModelMaker supports some arguments, you could find it by:
 
 ## How It Works
 
+Actually we can treat `json` as a tree, every node is a property of the model. If the count of the node's children is greater than one, this node will be another model. We can use recursion to make json data into a tree, in the process we can confirm every property's type. Then traverse this tree to get all non-leaf nodes, we can know how many model files we will generate.
+
+For more details:  
 
 
 ## Other Things
 
+* The implement idea is influenced by <https://github.com/YouXianMing/iOS-General-Tools/tree/master/CreateModel>
+* The project structure design is influenced by <https://github.com/onevcat/FengNiao>
+* `ModelMaker` is released under the **MIT** license.
+* If this is helpful for you, please give me a 🌟, thank you 🤣😝.
